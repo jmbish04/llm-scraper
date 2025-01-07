@@ -16,8 +16,9 @@ browser = { binding = "MYBROWSER" }
 
 ```ts
 import { z } from "zod";
-import { createOpenAI } from "@ai-sdk/openai";
 import LLMScraper from "llm-scraper-worker";
+import puppeteer from "@cloudflare/puppeteer";
+import { createOpenAI } from "@ai-sdk/openai";
 
 // ...later, in your worker...
 
