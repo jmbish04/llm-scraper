@@ -2,7 +2,7 @@ llm-scraper-worker
 
 ---
 
-A port of [llm-scraper](https://github.com/mishushakov/llm-scraper) to Cloudflare Workers, using the [browser rendering api](developers.cloudflare.com/browser-rendering) and [ai sdk](https://sdk.vercel.ai/).
+A port of [llm-scraper](https://github.com/mishushakov/llm-scraper) to Cloudflare Workers, using the [browser rendering api](https://developers.cloudflare.com/browser-rendering) and [ai sdk](https://sdk.vercel.ai/).
 
 ### Usage
 
