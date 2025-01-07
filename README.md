@@ -17,7 +17,7 @@ browser = { binding = "MYBROWSER" }
 ```ts
 import { z } from "zod";
 import { createOpenAI } from "@ai-sdk/openai";
-import LLMScraper from "llm-worker-scraper";
+import LLMScraper from "llm-scraper-worker";
 
 // ...later, in your worker...
 
