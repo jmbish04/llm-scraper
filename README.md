@@ -6,7 +6,7 @@ A port of [llm-scraper](https://github.com/mishushakov/llm-scraper) to Cloudflar
 
 ### Usage
 
-- setup your `wrangler.toml`
+Setup your `wrangler.toml`
 
 ```toml
 # ...
