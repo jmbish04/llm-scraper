@@ -4,6 +4,10 @@
   "scripts": {
     "start": "wangler dev --remote"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/threepointone/llm-scraper-worker.git"
+  },
   "keywords": [],
   "author": "Sunil Pai <spai@cloudflare.com>",
   "license": "ISC",
