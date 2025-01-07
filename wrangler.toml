@@ -1,0 +1,7 @@
+name = 'llm-scraper-worker-example'
+main = 'examples/index.ts'
+compatibility_flags = ['nodejs_compat']
+compatibility_date = '2025-01-06'
+
+
+browser = { binding = "MYBROWSER" }

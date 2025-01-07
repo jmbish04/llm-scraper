@@ -1,0 +1,55 @@
+{
+  "name": "llm-scraper-worker",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "wangler dev --remote"
+  },
+  "keywords": [],
+  "author": "Sunil Pai <spai@cloudflare.com>",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^1.0.6",
+    "@ai-sdk/openai": "^1.0.13",
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/turndown": "^5.0.5",
+    "tshy": "^3.0.2",
+    "typescript": "^5.7.2",
+    "wangler": "^0.0.7",
+    "wrangler": "^3.99.0"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^0.0.14",
+    "ai": "^4.0.27",
+    "node-llama-cpp": "^3.3.2",
+    "turndown": "^7.2.0",
+    "zod-to-json-schema": "^3.24.1"
+  },
+  "type": "module",
+  "tshy": {
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./src/index.ts"
+    }
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./dist/commonjs/index.js"
+      }
+    }
+  },
+  "main": "./dist/commonjs/index.js",
+  "types": "./dist/commonjs/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
