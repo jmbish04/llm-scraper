@@ -2,7 +2,8 @@
   "name": "llm-scraper-worker",
   "version": "0.0.4",
   "scripts": {
-    "start": "wangler dev --remote"
+    "start": "wangler dev --remote",
+    "build": "tshy"
   },
   "repository": {
     "type": "git",
