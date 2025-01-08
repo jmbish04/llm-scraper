@@ -68,7 +68,7 @@ export async function streamAISDKCompletions<T extends z.ZodSchema<any>>(
   options?: ScraperLLMOptions
 ) {
   const content = prepareAISDKPage(page);
-  const { partialObjectStream } = await streamObject<z.infer<T>>({
+  const { partialObjectStream } = streamObject<z.infer<T>>({
     model,
     messages: [
       { role: "system", content: options?.prompt || defaultPrompt },

@@ -62,7 +62,7 @@ await page.close();
 await browser.close();
 
 // Show the result from LLM
-console.log(data.top);
+console.log(data);
 ```
 
 This will output:
