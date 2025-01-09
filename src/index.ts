@@ -66,14 +66,14 @@ export default class LLMScraper {
     }
 
     if (options.format === "text") {
-      const readable = await page.evaluate(async () => {
+      const readable = (await page.evaluate(`async () => {
         const readability = await import(
           // @ts-ignore
           "https://cdn.skypack.dev/@mozilla/readability"
         );
 
         return new readability.Readability(document).parse();
-      });
+      }`)) as any;
 
       content = `Page Title: ${readable.title}\n${readable.textContent}`;
     }
