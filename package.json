@@ -21,7 +21,7 @@
     "tshy": "^3.0.2",
     "typescript": "^5.7.2",
     "wangler": "^0.0.7",
-    "wrangler": "^4.33.2"
+    "wrangler": "^4.33.0"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^0.0.14",
