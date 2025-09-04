@@ -1,128 +1,3 @@
-import puppeteer from "@cloudflare/puppeteer";
-import { z } from "zod";
-import LLMScraper from "../src";
-
-type Env = {
-  MYBROWSER: Fetcher;
-  AI: Ai;
-  WORKER_AUTH_API_KEY: string;
-};
-
-// Authentication middleware
-function authenticate(request: Request, env: Env): boolean {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-  
-  const token = authHeader.substring(7);
-  return token === env.WORKER_AUTH_API_KEY;
-}
-
-// Scrape API handler
-async function handleScrapeAPI(request: Request, env: Env): Promise<Response> {
-  // Check authentication
-  if (!authenticate(request, env)) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  try {
-    const body = await request.json() as { url: string; prompt?: string };
-    
-    if (!body.url) {
-      return Response.json({ error: 'URL is required' }, { status: 400 });
-    }
-
-    // Validate URL
-    try {
-      new URL(body.url);
-    } catch {
-      return Response.json({ error: 'Invalid URL format' }, { status: 400 });
-    }
-
-    // Check if browser is available (might not be in local dev)
-    if (!env.MYBROWSER) {
-      return Response.json({ 
-        error: 'Browser not available in local development. Deploy to Cloudflare to test full functionality.' 
-      }, { status: 503 });
-    }
-
-    // Launch browser
-    const browser = await puppeteer.launch(env.MYBROWSER);
-    const page = await browser.newPage();
-    
-    try {
-      // Navigate to the URL with timeout
-      await page.goto(body.url, { waitUntil: 'networkidle0', timeout: 30000 });
-
-      // Check if AI is available
-      if (!env.AI) {
-        await page.close();
-        await browser.close();
-        return Response.json({ 
-          error: 'AI service not available in local development. Deploy to Cloudflare to test full functionality.' 
-        }, { status: 503 });
-      }
-
-      // Create LLM scraper with Worker AI
-      const scraper = new LLMScraper(env.AI);
-
-      // Define a flexible schema that can capture any structured data
-      const schema = z.object({
-        content: z.any().describe("Extracted content from the webpage"),
-      });
-
-      // Run the scraper
-      const result = await scraper.run(page, schema, {
-        format: "text",
-        prompt: body.prompt || "You are a sophisticated web scraper. Extract the contents of the webpage"
-      });
-
-      await page.close();
-      await browser.close();
-
-      return Response.json(result);
-    } catch (error) {
-      await page.close();
-      await browser.close();
-      
-      return Response.json(
-        { error: `Scraping failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    return Response.json(
-      { error: `Request processing failed: ${error instanceof Error ? error.message : 'Invalid JSON'}` },
-      { status: 400 }
-    );
-  }
-}
-
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-
-    // Handle API routes
-    if (url.pathname === "/api/scrape" && request.method === "POST") {
-      return handleScrapeAPI(request, env);
-    }
-
-    // Serve static files
-    if (url.pathname === "/" || url.pathname === "/index.html") {
-      try {
-        // Use the standard file reading for static assets
-        const file = await import("path").then(p => p.join("./public", "index.html"));
-        const indexHtml = await import("fs").then(fs => fs.promises.readFile(file, "utf-8"));
-        
-        return new Response(indexHtml, {
-          headers: {
-            "Content-Type": "text/html",
-          }
-        });
-      } catch {
-        // Fallback inline HTML if file read fails
-        return new Response(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -258,7 +133,7 @@ export default {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': \`Bearer \${apiKey}\`
+                        'Authorization': `Bearer ${apiKey}`
                     },
                     body: JSON.stringify({
                         url: url,
@@ -274,20 +149,20 @@ export default {
                 
                 // Show success result
                 resultDiv.className = 'result';
-                resultDiv.innerHTML = \`
+                resultDiv.innerHTML = `
                     <h3>✅ Scraping Successful</h3>
-                    <p><strong>URL:</strong> \${data.url}</p>
+                    <p><strong>URL:</strong> ${data.url}</p>
                     <h4>Extracted Data:</h4>
-                    <pre>\${JSON.stringify(data.data, null, 2)}</pre>
-                \`;
+                    <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                `;
                 
             } catch (error) {
                 // Show error result
                 resultDiv.className = 'result error';
-                resultDiv.innerHTML = \`
+                resultDiv.innerHTML = `
                     <h3>❌ Error</h3>
-                    <p>\${error.message}</p>
-                \`;
+                    <p>${error.message}</p>
+                `;
             } finally {
                 // Reset button
                 submitBtn.disabled = false;
@@ -296,20 +171,4 @@ export default {
         });
     </script>
 </body>
-</html>`, {
-          headers: {
-            "Content-Type": "text/html",
-          }
-        });
-      }
-    }
-
-    // Handle favicon
-    if (url.pathname === "/favicon.ico") {
-      return new Response(null, { status: 404 });
-    }
-
-    // Default 404 for other routes
-    return Response.json({ error: "Not found" }, { status: 404 });
-  },
-} satisfies ExportedHandler<Env>;
+</html>

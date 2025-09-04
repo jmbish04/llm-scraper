@@ -2,104 +2,84 @@ llm-scraper-worker
 
 ---
 
-A port of [llm-scraper](https://github.com/mishushakov/llm-scraper) to Cloudflare Workers, using the [browser rendering api](https://developers.cloudflare.com/browser-rendering) and [ai sdk](https://sdk.vercel.ai/).
+A Cloudflare Worker that uses Worker AI and browser rendering to scrape websites with LLM-powered content extraction.
 
-### Usage
+## Features
 
-Setup your `wrangler.toml`
+- 🤖 **Worker AI Integration**: Uses Cloudflare's native AI models (`@cf/meta/llama-3.1-8b-instruct`)
+- 🌐 **Browser Rendering**: Powered by Cloudflare's browser rendering API
+- 🔐 **API Authentication**: Secure endpoints with API key authentication
+- 🎨 **Web Interface**: Simple HTML frontend for easy testing
+- 📡 **REST API**: RESTful endpoints for programmatic access
 
-```toml
-# ...
+## API Endpoints
 
-browser = { binding = "MYBROWSER" }
+### POST /api/scrape
+
+Scrape a website and extract content using AI.
+
+**Headers:**
+```
+Authorization: Bearer YOUR_WORKER_AUTH_API_KEY
+Content-Type: application/json
 ```
 
-```ts
-import { z } from "zod";
-import LLMScraper from "llm-scraper-worker";
-import puppeteer from "@cloudflare/puppeteer";
-import { createOpenAI } from "@ai-sdk/openai";
-
-// ...later, in your worker...
-
-// Launch a browser instance
-const browser = await puppeteer.launch(env.MYBROWSER);
-
-// Initialize LLM provider
-const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY, // set this up in .dev.vars / secrets
-});
-const llm = openai.chat("gpt-4o");
-
-// Create a new LLMScraper
-const scraper = new LLMScraper(llm);
-
-// Open new page
-const page = await browser.newPage();
-await page.goto("https://news.ycombinator.com");
-
-// Define schema to extract contents into
-const schema = z.object({
-  top: z
-    .array(
-      z.object({
-        title: z.string(),
-        points: z.number(),
-        by: z.string(),
-        commentsURL: z.string(),
-      })
-    )
-    .length(5)
-    .describe("Top 5 stories on Hacker News"),
-});
-
-// Run the scraper
-const { data } = await scraper.run(page, schema, {
-  format: "html",
-});
-
-await page.close();
-await browser.close();
-
-// Show the result from LLM
-console.log(data);
-```
-
-This will output:
-
+**Body:**
 ```json
 {
-  "top": [
-    {
-      "title": "A 2-ply minimax chess engine in 84,688 regular expressions",
-      "points": 245,
-      "by": "ilya_m",
-      "commentsURL": "https://news.ycombinator.com/item?id=42619652"
-    },
-    {
-      "title": "Stimulation Clicker",
-      "points": 2365,
-      "by": "meetpateltech",
-      "commentsURL": "https://news.ycombinator.com/item?id=42611536"
-    },
-    {
-      "title": "AI and Startup Moats",
-      "points": 37,
-      "by": "vismit2000",
-      "commentsURL": "https://news.ycombinator.com/item?id=42620994"
-    },
-    {
-      "title": "How I program with LLMs",
-      "points": 370,
-      "by": "stpn",
-      "commentsURL": "https://news.ycombinator.com/item?id=42617645"
-    },
-    {
-      "title": "First time a Blender-made production has won the Golden Globe",
-      "points": 155,
-      "by": "jgilias",
-      "commentsURL": "https://news.ycombinator.com/item?id=42620656"
-    }
-  ]
+  "url": "https://example.com",
+  "prompt": "Extract the main content from this webpage"
 }
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "content": "Extracted content here..."
+  },
+  "url": "https://example.com"
+}
+```
+
+## Deployment
+
+1. Set up your environment variables:
+```bash
+echo "WORKER_AUTH_API_KEY=your-secret-key" > .dev.vars
+```
+
+2. Deploy to Cloudflare Workers:
+```bash
+npx wrangler deploy
+```
+
+3. Set the `WORKER_AUTH_API_KEY` secret in your Cloudflare dashboard.
+
+## Local Development
+
+```bash
+npm install
+npx wrangler dev
+```
+
+Note: Browser rendering and Worker AI require deployment to Cloudflare Workers to function fully.
+
+## Web Interface
+
+Visit your deployed worker URL to access the web interface with:
+- API Key input field
+- URL to scrape input field  
+- Custom prompt input field (with default prompt)
+
+## Usage Example
+
+```bash
+curl -X POST https://your-worker.your-subdomain.workers.dev/api/scrape \
+  -H "Authorization: Bearer your-secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "prompt": "Extract the main heading and key information"
+  }'
 ```
