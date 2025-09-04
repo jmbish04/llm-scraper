@@ -1,4 +1,4 @@
-name = 'llm-scraper-worker-example'
+name = 'llm-scraper'
 main = 'examples/index.ts'
 compatibility_flags = ['nodejs_compat']
 compatibility_date = '2025-01-06'
