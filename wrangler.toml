@@ -3,5 +3,8 @@ main = 'examples/index.ts'
 compatibility_flags = ['nodejs_compat']
 compatibility_date = '2025-01-06'
 
+[ai]
+binding = "AI"
 
-browser = { binding = "MYBROWSER" }
+[browser]
+binding = "MYBROWSER"

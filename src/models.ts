@@ -1,14 +1,5 @@
-import { LanguageModelV1 } from "@ai-sdk/provider";
-import { generateObject, generateText, streamObject, UserContent } from "ai";
 import { z } from "zod";
 import { ScraperLoadResult, ScraperLLMOptions } from "./index.js";
-// import {
-//   LlamaModel,
-//   LlamaJsonSchemaGrammar,
-//   LlamaContext,
-//   LlamaChatSession,
-//   GbnfJsonSchema,
-// } from "node-llama-cpp";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 export type ScraperCompletionResult<T extends z.ZodSchema<any>> = {
@@ -19,124 +10,66 @@ export type ScraperCompletionResult<T extends z.ZodSchema<any>> = {
 const defaultPrompt =
   "You are a sophisticated web scraper. Extract the contents of the webpage";
 
-const defaultCodePrompt = `Provide a scraping function in JavaScript that extracts and formats data according to a schema from the current page.
-The function must be IIFE. No comments or imports. The code you generate will be executed straight away, you shouldn't output anything besides runnable code.`;
+export async function generateWorkerAICompletions<T extends z.ZodSchema<any>>(
+  ai: Ai,
+  page: ScraperLoadResult,
+  schema: T,
+  options?: ScraperLLMOptions
+) {
+  const systemPrompt = options?.prompt || defaultPrompt;
+  const content = page.format === "image" 
+    ? `[Image content provided as base64: ${page.content.substring(0, 100)}...]`
+    : page.content;
 
-function prepareAISDKPage(page: ScraperLoadResult): UserContent {
-  if (page.format === "image") {
-    return [
-      {
-        type: "image",
-        image: page.content,
-      },
-    ];
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: `Please extract data from this webpage according to the schema provided. URL: ${page.url}\n\nContent:\n${content}` }
+  ];
+
+  const response = await ai.run("@cf/meta/llama-3.1-8b-instruct", {
+    messages,
+    temperature: options?.temperature || 0.7,
+    max_tokens: options?.maxTokens || 2048,
+  });
+
+  // Handle the response properly based on Worker AI response format
+  let responseText: string;
+  
+  if (typeof response === 'string') {
+    responseText = response;
+  } else if (response && typeof response === 'object') {
+    // Worker AI typically returns { response: string } for text generation
+    responseText = (response as any).response || JSON.stringify(response);
+  } else {
+    responseText = JSON.stringify(response);
   }
 
-  return [{ type: "text", text: page.content }];
+  // Parse the response to match the schema
+  try {
+    const parsed = JSON.parse(responseText);
+    const validated = schema.parse(parsed);
+    return {
+      data: validated,
+      url: page.url,
+    };
+  } catch (error) {
+    // If parsing fails, try to extract JSON from the response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const validated = schema.parse(parsed);
+        return {
+          data: validated,
+          url: page.url,
+        };
+      } catch (e) {
+        // If still fails, return a default structure that matches the schema
+        throw new Error(`Failed to parse AI response: ${error}`);
+      }
+    }
+    throw new Error(`Failed to extract valid JSON from AI response: ${responseText}`);
+  }
 }
 
-export async function generateAISDKCompletions<T extends z.ZodSchema<any>>(
-  model: LanguageModelV1,
-  page: ScraperLoadResult,
-  schema: T,
-  options?: ScraperLLMOptions
-) {
-  const content = prepareAISDKPage(page);
-  const result = await generateObject<z.infer<T>>({
-    model,
-    messages: [
-      { role: "system", content: options?.prompt || defaultPrompt },
-      { role: "user", content },
-    ],
-    schema,
-    temperature: options?.temperature,
-    maxTokens: options?.maxTokens,
-    topP: options?.topP,
-    mode: options?.mode,
-  });
 
-  return {
-    data: result.object,
-    url: page.url,
-  };
-}
-
-export async function streamAISDKCompletions<T extends z.ZodSchema<any>>(
-  model: LanguageModelV1,
-  page: ScraperLoadResult,
-  schema: T,
-  options?: ScraperLLMOptions
-) {
-  const content = prepareAISDKPage(page);
-  const { partialObjectStream } = streamObject<z.infer<T>>({
-    model,
-    messages: [
-      { role: "system", content: options?.prompt || defaultPrompt },
-      { role: "user", content },
-    ],
-    schema,
-    temperature: options?.temperature,
-    maxTokens: options?.maxTokens,
-    topP: options?.topP,
-  });
-
-  return {
-    stream: partialObjectStream,
-    url: page.url,
-  };
-}
-
-export async function generateAISDKCode<T extends z.ZodSchema<any>>(
-  model: LanguageModelV1,
-  page: ScraperLoadResult,
-  schema: T,
-  options?: ScraperLLMOptions
-) {
-  const generatedSchema = zodToJsonSchema(schema);
-  const result = await generateText({
-    model,
-    messages: [
-      { role: "system", content: options?.prompt || defaultCodePrompt },
-      {
-        role: "user",
-        content: `Website: ${page.url}
-        Schema: ${JSON.stringify(generatedSchema)}
-        Content: ${page.content}`,
-      },
-    ],
-    temperature: options?.temperature,
-    maxTokens: options?.maxTokens,
-    topP: options?.topP,
-  });
-
-  return {
-    code: result.text,
-    url: page.url,
-  };
-}
-
-// export async function generateLlamaCompletions<T extends z.ZodSchema<any>>(
-//   model: LlamaModel,
-//   page: ScraperLoadResult,
-//   schema: T,
-//   options?: ScraperLLMOptions
-// ): Promise<ScraperCompletionResult<T>> {
-//   const generatedSchema = zodToJsonSchema(schema) as GbnfJsonSchema;
-//   const grammar = new LlamaJsonSchemaGrammar(generatedSchema) as any; // any, because it has type inference going wild
-//   const context = new LlamaContext({ model });
-//   const session = new LlamaChatSession({ context });
-//   const pagePrompt = `${options?.prompt || defaultPrompt}\n${page.content}`;
-
-//   const result = await session.prompt(pagePrompt, {
-//     grammar,
-//     temperature: options?.temperature,
-//     maxTokens: options?.maxTokens,
-//     topP: options?.topP,
-//   });
-
-//   const parsed = grammar.parse(result);
-//   return {
-//     data: parsed,
-//     url: page.url,
-//   };
-// }
