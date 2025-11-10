@@ -65,7 +65,7 @@ export async function generateWorkerAICompletions<T extends z.ZodSchema<any>>(
         };
       } catch (e) {
         // If still fails, return a default structure that matches the schema
-        throw new Error(`Failed to parse AI response: ${error}`);
+        throw new Error(`Failed to parse AI response: ${e}`);
       }
     }
     throw new Error(`Failed to extract valid JSON from AI response: ${responseText}`);
