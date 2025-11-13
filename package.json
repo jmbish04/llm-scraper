@@ -2,7 +2,7 @@
   "name": "llm-scraper",
   "version": "0.0.6",
   "scripts": {
-    "start": "wangler dev --remote",
+    "start": "wrangler dev --remote",
     "build": "tshy"
   },
   "repository": {
