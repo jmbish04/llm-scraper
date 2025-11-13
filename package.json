@@ -19,10 +19,10 @@
     "tshy": "^3.0.2",
     "typescript": "^5.7.2",
     "wangler": "^0.0.7",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.47.0"
   },
   "dependencies": {
-    "@cloudflare/puppeteer": "^0.0.14",
+    "@cloudflare/puppeteer": "^1.0.4",
     "turndown": "^7.2.0",
     "zod-to-json-schema": "^3.24.1"
   },

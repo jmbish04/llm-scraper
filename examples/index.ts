@@ -10,6 +10,11 @@ type Env = {
 
 // Authentication middleware
 function authenticate(request: Request, env: Env): boolean {
+  // If no API key is configured, deny access
+  if (!env.WORKER_AUTH_API_KEY) {
+    return false;
+  }
+  
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return false;
@@ -78,13 +83,31 @@ async function handleScrapeAPI(request: Request, env: Env): Promise<Response> {
         prompt: body.prompt || "You are a sophisticated web scraper. Extract the contents of the webpage"
       });
 
-      await page.close();
-      await browser.close();
+      // Clean up resources
+      try {
+        await page.close();
+      } catch (e) {
+        console.error('Failed to close page:', e);
+      }
+      try {
+        await browser.close();
+      } catch (e) {
+        console.error('Failed to close browser:', e);
+      }
 
       return Response.json(result);
     } catch (error) {
-      await page.close();
-      await browser.close();
+      // Clean up resources safely
+      try {
+        await page.close();
+      } catch (e) {
+        console.error('Failed to close page:', e);
+      }
+      try {
+        await browser.close();
+      } catch (e) {
+        console.error('Failed to close browser:', e);
+      }
       
       return Response.json(
         { error: `Scraping failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
@@ -110,19 +133,8 @@ export default {
 
     // Serve static files
     if (url.pathname === "/" || url.pathname === "/index.html") {
-      try {
-        // Use the standard file reading for static assets
-        const file = await import("path").then(p => p.join("./public", "index.html"));
-        const indexHtml = await import("fs").then(fs => fs.promises.readFile(file, "utf-8"));
-        
-        return new Response(indexHtml, {
-          headers: {
-            "Content-Type": "text/html",
-          }
-        });
-      } catch {
-        // Fallback inline HTML if file read fails
-        return new Response(`
+      // Serve inline HTML (Node.js fs/path modules don't work in Cloudflare Workers)
+      return new Response(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -301,7 +313,6 @@ export default {
             "Content-Type": "text/html",
           }
         });
-      }
     }
 
     // Handle favicon

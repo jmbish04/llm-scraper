@@ -21,8 +21,11 @@ export async function generateWorkerAICompletions<T extends z.ZodSchema<any>>(
     ? `[Image content provided as base64: ${page.content.substring(0, 100)}...]`
     : page.content;
 
+  // Convert Zod schema to JSON Schema for the AI
+  const jsonSchema = zodToJsonSchema(schema, "schema");
+
   const messages = [
-    { role: "system", content: systemPrompt },
+    { role: "system", content: `${systemPrompt}\n\nYou must respond with valid JSON that matches this schema:\n${JSON.stringify(jsonSchema, null, 2)}` },
     { role: "user", content: `Please extract data from this webpage according to the schema provided. URL: ${page.url}\n\nContent:\n${content}` }
   ];
 
